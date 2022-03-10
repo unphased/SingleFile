@@ -25,9 +25,9 @@
 
 /* global require, process */
 
-const fs = require("fs");
-const path = require("path");
-const nativeMessage = require("./lib/messaging.js");
+import fs from "fs";
+import path from "path";
+import nativeMessage from "./lib/messaging.js";
 const backEnds = {
   jsdom: "./../cli/back-ends/jsdom.js",
   puppeteer: "./../cli/back-ends/puppeteer.js",
@@ -36,25 +36,38 @@ const backEnds = {
   "webdriver-gecko": "./../cli/back-ends/webdriver-gecko.js",
 };
 
-import loggerFactory from "~/util/widgets/helpers.ts";
-const { logFuncShow: l } = loggerFactory();
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-process.stdin
-  .pipe(new nativeMessage.Input())
-  .pipe(
-    new nativeMessage.Transform(async function (message, push, done) {
-      try {
-        await processMessage(message);
-        push({});
-      } catch (error) {
-        push({ error });
-      }
-      done();
-      process.exit(0);
-    })
-  )
-  .pipe(new nativeMessage.Output())
-  .pipe(process.stdout);
+import { loggerFactory } from "/home/slu/util/widgets/helpers.js";
+const { logFuncShow: l } = loggerFactory(
+  path.join(__dirname, "logs", "singlefile_companion"),
+  true
+);
+
+l("started up");
+
+process.stdin.on("data", (mes) => {
+  l("Recvd", mes.toString());
+});
+
+// process.stdin
+//   .pipe(new nativeMessage.Input())
+//   .pipe(
+//     new nativeMessage.Transform(async function (message, push, done) {
+//       try {
+//         await processMessage(message);
+//         push({});
+//       } catch (error) {
+//         push({ error });
+//       }
+//       done();
+//       process.exit(0);
+//     })
+//   )
+//   .pipe(new nativeMessage.Output())
+//   .pipe(process.stdout);
 
 async function processMessage(message) {
   if (message.method == "save") {
@@ -72,6 +85,7 @@ async function save(message) {
     companionOptions.savePath || "",
     message.filename
   );
+  l("writeFile a", filename, "len", message.content.length);
   fs.writeFileSync(getFilename(filename), message.content);
 }
 
@@ -86,11 +100,13 @@ async function externalSave(message) {
       companionOptions.savePath || "",
       pageData.filename
     );
+    l("writeFile b", filename, "len", message.content.length);
     fs.writeFileSync(getFilename(pageData.filename), pageData.content);
     return pageData;
   } catch (error) {
     if (companionOptions.errorFile) {
       const message = "URL: " + message.url + "\nStack: " + error.stack + "\n";
+      l("writeFile c", filename, "len", message.content.length);
       fs.writeFileSync(message.errorFile, message, { flag: "a" });
     }
     throw error;

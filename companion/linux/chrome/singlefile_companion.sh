@@ -1,2 +1,2 @@
 #!/bin/sh
-node ../../singlefile_companion.js
+node ../../singlefile_companion.mjs
